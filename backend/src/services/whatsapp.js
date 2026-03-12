@@ -9,6 +9,7 @@ function initWhatsApp() {
     authStrategy: new LocalAuth({ dataPath: './whatsapp-session' }),
     puppeteer: {
       headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     }
   });
