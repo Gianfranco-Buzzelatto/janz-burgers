@@ -1,7 +1,11 @@
-FROM node:20-alpine
+FROM node:18-slim
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-EXPOSE 3000
-CMD ["npm", "start"]
+RUN npm run build
+RUN npm install -g serve
+
+EXPOSE 8080
+CMD ["serve", "-s", "build", "-l", "8080"]
