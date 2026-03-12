@@ -1,8 +1,13 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
 
 let client = null;
 let isReady = false;
+let currentQR = null;
+function getCurrentQR() {
+  return currentQR;
+}
 
 function initWhatsApp() {
   client = new Client({
@@ -15,10 +20,10 @@ function initWhatsApp() {
   });
 
   client.on('qr', (qr) => {
-    console.log('\n📱 Escaneá este QR con tu WhatsApp para conectar:\n');
+    currentQR = qr;
+    console.log('\n📱 QR generado, escanealo en /api/whatsapp/qr\n');
     qrcode.generate(qr, { small: true });
-    console.log('\n(Abrí WhatsApp → Dispositivos vinculados → Vincular dispositivo)\n');
-  });
+});
 
   client.on('ready', () => {
     isReady = true;
@@ -86,4 +91,4 @@ function getWhatsAppStatus() {
   return { connected: isReady };
 }
 
-module.exports = { sendOrderConfirmation, getWhatsAppStatus };
+module.exports = { sendOrderConfirmation, getWhatsAppStatus, getCurrentQR };

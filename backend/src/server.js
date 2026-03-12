@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
+const QRCode = require('qrcode');
+const { getCurrentQR } = require('./services/whatsapp');
 
 const app = express();
 
@@ -28,6 +30,12 @@ app.use('/api/clients', require('./routes/clients'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/shopping', require('./routes/shopping'));
 app.use('/api/public', require('./routes/public'));
+app.get('/api/whatsapp/qr', async (req, res) => {
+  const qr = getCurrentQR();
+  if (!qr) return res.json({ message: 'QR no disponible aún' });
+  const qrImage = await QRCode.toDataURL(qr);
+  res.json({ qr: qrImage });
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
