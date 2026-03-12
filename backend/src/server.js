@@ -36,6 +36,12 @@ app.get('/api/whatsapp/qr', async (req, res) => {
   const qrImage = await QRCode.toDataURL(qr);
   res.json({ qr: qrImage });
 });
+app.get('/api/whatsapp/qr-view', async (req, res) => {
+  const qr = getCurrentQR();
+  if (!qr) return res.send('<h2>QR no disponible aún, esperá unos segundos y recargá</h2>');
+  const qrImage = await QRCode.toDataURL(qr);
+  res.send(`<html><body style="display:flex;justify-content:center;align-items:center;height:100vh;background:#000"><img src="${qrImage}" /></body></html>`);
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
