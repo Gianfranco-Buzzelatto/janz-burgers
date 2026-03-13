@@ -13,6 +13,7 @@ import Shopping from './pages/Shopping';
 import Layout from './components/Layout';
 import PublicOrder from './pages/PublicOrder';
 import Users from './pages/Users';
+import Coupons from './pages/Coupons';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -37,6 +38,7 @@ function AppRoutes() {
         <Route path="clientes" element={<ProtectedRoute adminOnly><Clients /></ProtectedRoute>} />
         <Route path="compras" element={<ProtectedRoute adminOnly><Shopping /></ProtectedRoute>} />
         <Route path="usuarios" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
+        <Route path="cupones" element={<ProtectedRoute adminOnly><Coupons /></ProtectedRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />
       <Route path="/pedido" element={<PublicOrder />} />
