@@ -3,6 +3,7 @@ const router = express.Router();
 const { Product } = require('../models/Product');
 const { Client, Order } = require('../models/Order');
 const Additional = require('../models/Additional');
+const Coupon = require('../models/Coupon');
 
 // Check if store is open
 function isOperationalDay() {
@@ -45,7 +46,21 @@ router.post('/order', async (req, res) => {
       });
     }
 
-    const { client: clientData, items, paymentMethod, notes, deliveryType } = req.body;
+    const { client: clientData, items, paymentMethod, notes, deliveryType, couponCode } = req.body;
+
+    // Validar cupón si se envió
+    let couponDoc = null;
+    let discountPercent = 0;
+    if (couponCode) {
+      couponDoc = await Coupon.findOne({ code: couponCode.toUpperCase(), active: true });
+      if (couponDoc) {
+        // Verificar que el whatsapp no lo haya usado antes
+        const alreadyUsed = couponDoc.uses.some(u => u.whatsapp === clientData.whatsapp);
+        if (!alreadyUsed) {
+          discountPercent = couponDoc.discountForUser;
+        }
+      }
+    }
 
     // Find or create client by whatsapp
     let client = await Client.findOne({ 
@@ -112,16 +127,35 @@ router.post('/order', async (req, res) => {
       deliveryType: deliveryType || 'delivery',
       deliveryAddress: `${clientData.address || ''}${clientData.floor ? ` ${clientData.floor}` : ''}${clientData.neighborhood ? `, ${clientData.neighborhood}` : ''}`,
       notes,
+      coupon: couponDoc ? couponDoc._id : null,
+      couponCode: couponDoc ? couponDoc.code : null,
+      discountPercent,
       status: 'pending'
     });
 
     await order.save();
     await Client.findByIdAndUpdate(client._id, { $inc: { totalOrders: 1 } });
 
-    res.status(201).json({ 
+    // Registrar uso del cupón y acreditar recompensa al dueño
+    if (couponDoc && discountPercent > 0) {
+      couponDoc.uses.push({
+        client: client._id,
+        clientName: client.name,
+        whatsapp: client.whatsapp,
+        order: order._id,
+        orderNumber: order.orderNumber,
+        discountApplied: discountPercent
+      });
+      couponDoc.totalUses += 1;
+      couponDoc.ownerPendingDiscount += couponDoc.rewardPerUse;
+      await couponDoc.save();
+    }
+
+    res.status(201).json({
       success: true,
       orderNumber: order.orderNumber,
       total: order.total,
+      discountApplied: order.discountAmount > 0 ? { percent: discountPercent, amount: order.discountAmount } : null,
       message: `¡Pedido recibido! Tu número es ${order.orderNumber}`
     });
 

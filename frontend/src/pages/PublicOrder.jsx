@@ -101,6 +101,9 @@ export default function PublicOrder() {
   const [additionalsModal, setAdditionalsModal] = useState(null);
   const [client, setClient] = useState({ name: '', whatsapp: '', address: '', floor: '', neighborhood: '', references: '', notes: '' });
   const [deliveryType, setDeliveryType] = useState('delivery');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponStatus, setCouponStatus] = useState(null); // { valid, discountPercent, message }
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
     API.get('/public/menu').then(r => {
@@ -141,7 +144,22 @@ export default function PublicOrder() {
     }
   };
 
-  const total = cart.reduce((s, i) => s + itemTotal(i), 0);
+  const validateCoupon = async () => {
+    if (!couponCode.trim()) return;
+    if (!client.whatsapp) { setCouponStatus({ valid: false, message: 'Ingresá tu WhatsApp primero' }); return; }
+    setValidatingCoupon(true);
+    try {
+      const res = await API.post('/coupons/validate', { code: couponCode.trim(), whatsapp: client.whatsapp });
+      setCouponStatus({ valid: true, discountPercent: res.data.discountPercent, message: res.data.message });
+    } catch (e) {
+      setCouponStatus({ valid: false, message: e.response?.data?.message || 'Cupón inválido' });
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const discount = couponStatus?.valid ? Math.round(total * couponStatus.discountPercent / 100) : 0;
+  const totalWithDiscount = total - discount;
 
   const handleSubmit = async () => {
     if (!client.name || !client.whatsapp) { toast.error('Nombre y WhatsApp son obligatorios'); return; }
@@ -155,7 +173,8 @@ export default function PublicOrder() {
           additionals: (i.additionals || []).map(a => ({ additional: a.additional, quantity: a.quantity }))
         })),
         deliveryType,
-        notes: client.notes
+        notes: client.notes,
+        couponCode: couponStatus?.valid ? couponCode.trim() : null
       });
       setOrderResult(res.data);
       setStep('success');
@@ -256,6 +275,30 @@ export default function PublicOrder() {
             </div>
           ))}
 
+          {/* Cupón de descuento */}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              🎟️ Cupón de descuento
+            </label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={couponCode}
+                onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
+                placeholder="Ej: LAURA10"
+                style={{ flex: 1, background: '#1a1a1a', border: `1px solid ${couponStatus?.valid ? '#22c55e' : couponStatus?.valid === false ? '#ef4444' : '#333'}`, borderRadius: 8, color: 'white', padding: '10px 14px', fontSize: '0.875rem', outline: 'none' }}
+              />
+              <button onClick={validateCoupon} disabled={validatingCoupon || !couponCode.trim()}
+                style={{ background: '#2a2a2a', color: '#E8B84B', border: '1px solid #E8B84B', padding: '10px 16px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                {validatingCoupon ? '...' : 'Aplicar'}
+              </button>
+            </div>
+            {couponStatus && (
+              <div style={{ marginTop: 6, fontSize: '0.8rem', color: couponStatus.valid ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                {couponStatus.valid ? '✅' : '❌'} {couponStatus.message}
+              </div>
+            )}
+          </div>
+
           {/* Resumen */}
           <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 16, marginBottom: 20, marginTop: 8 }}>
             <div style={{ fontWeight: 700, marginBottom: 10, color: '#E8B84B' }}>Resumen</div>
@@ -273,15 +316,29 @@ export default function PublicOrder() {
                 ))}
               </div>
             ))}
-            <div style={{ borderTop: '1px solid #333', marginTop: 10, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-              <span>TOTAL</span>
-              <span style={{ color: '#E8B84B', fontSize: '1.1rem' }}>{fmt(total)}</span>
+            <div style={{ borderTop: '1px solid #333', marginTop: 10, paddingTop: 10 }}>
+              {discount > 0 && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: 4 }}>
+                    <span style={{ color: '#888' }}>Subtotal</span>
+                    <span style={{ color: '#888' }}>{fmt(total)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: 6 }}>
+                    <span style={{ color: '#22c55e' }}>🎟️ Descuento {couponStatus.discountPercent}%</span>
+                    <span style={{ color: '#22c55e' }}>- {fmt(discount)}</span>
+                  </div>
+                </>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                <span>TOTAL</span>
+                <span style={{ color: '#E8B84B', fontSize: '1.1rem' }}>{fmt(totalWithDiscount)}</span>
+              </div>
             </div>
           </div>
 
           <button onClick={handleSubmit} disabled={submitting}
             style={{ width: '100%', background: '#E8B84B', color: '#000', border: 'none', padding: '14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>
-            {submitting ? 'Enviando...' : `Confirmar Pedido — ${fmt(total)}`}
+            {submitting ? 'Enviando...' : `Confirmar Pedido — ${fmt(totalWithDiscount)}`}
           </button>
         </div>
 

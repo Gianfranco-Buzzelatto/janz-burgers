@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, ShoppingBag, ChefHat, Package, Beef, Users,
-  ShoppingCart, LogOut, Star, BookOpen, UserCog, Menu, X
+  ShoppingCart, LogOut, Star, BookOpen, UserCog, Menu, X, Ticket
 } from 'lucide-react';
 
 const navItems = [
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/productos', label: 'Escandallo', icon: Beef, adminOnly: true },
   { to: '/ingredientes', label: 'Ingredientes', icon: BookOpen, adminOnly: true },
   { to: '/clientes', label: 'Clientes', icon: Users, adminOnly: true },
+  { to: '/cupones', label: 'Cuponera', icon: Ticket, adminOnly: true },
   { to: '/compras', label: 'Lista de Compras', icon: ShoppingCart, adminOnly: true },
   { to: '/usuarios', label: 'Usuarios', icon: UserCog, adminOnly: true }
 ];

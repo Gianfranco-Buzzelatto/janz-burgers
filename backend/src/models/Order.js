@@ -60,6 +60,10 @@ const orderSchema = new mongoose.Schema({
   },
   deliveryAddress: { type: String },
   notes: { type: String },
+  coupon: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon', default: null },
+  couponCode: { type: String, default: null },
+  discountAmount: { type: Number, default: 0 },
+  discountPercent: { type: Number, default: 0 },
   stockDeducted: { type: Boolean, default: false }, // track if stock was already deducted
   whatsappSent: { type: Boolean, default: false },
   confirmedAt: { type: Date },
@@ -82,7 +86,12 @@ orderSchema.pre('save', async function(next) {
     item.subtotal = (item.unitPrice * item.quantity) + additionalsTotal;
     total += item.subtotal;
   });
-  this.total = total + (this.additionals || 0);
+  const subtotal = total + (this.additionals || 0);
+  // Aplicar descuento de cupón
+  if (this.discountPercent > 0) {
+    this.discountAmount = Math.round(subtotal * this.discountPercent / 100);
+  }
+  this.total = Math.max(0, subtotal - (this.discountAmount || 0));
   
   next();
 });
