@@ -203,7 +203,7 @@ export default function Kitchen() {
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }}/></div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, padding: '0 32px 32px' }}>
+        <div className="kitchen-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, padding: '0 20px 32px' }}>
           {colConfig.map(col => (
             <div key={col.key}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>

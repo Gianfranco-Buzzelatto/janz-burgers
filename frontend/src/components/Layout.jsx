@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, ShoppingBag, ChefHat, Package, Beef, Users,
-  ShoppingCart, LogOut, Star, BookOpen, UserCog 
+  ShoppingCart, LogOut, Star, BookOpen, UserCog, Menu, X
 } from 'lucide-react';
 
 const navItems = [
@@ -20,22 +21,36 @@ const navItems = [
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
     <div className="layout">
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <img src="/logo.png" alt="Janz Burgers" style={{ filter: 'invert(1)' }} 
-            onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }}
-          />
-          <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '1.8rem', display: 'none', color: 'white' }}>
+      {/* Overlay mobile */}
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+        onClick={closeSidebar}
+      />
+
+      {/* Sidebar */}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '1.8rem', color: 'white' }}>
             JANZ<span style={{ color: 'var(--gold)' }}>BURGERS</span>
           </h2>
+          {/* Botón cerrar sidebar en mobile */}
+          <button
+            onClick={closeSidebar}
+            style={{ background: 'none', border: 'none', color: 'var(--gray)', cursor: 'pointer', display: 'flex', padding: 4 }}
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <nav className="sidebar-nav">
@@ -47,6 +62,7 @@ export default function Layout() {
                 to={item.to}
                 end={item.exact}
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
               >
                 <item.icon size={18} />
                 {item.label}
@@ -60,8 +76,8 @@ export default function Layout() {
             <div className="user-avatar">
               {user?.name?.charAt(0).toUpperCase()}
             </div>
-            <div style={{ flex: 1 }}>
-              <div className="user-name">{user?.name}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
               <div className="user-role">{user?.role}</div>
             </div>
             <button className="btn-icon" onClick={handleLogout} title="Salir">
@@ -71,7 +87,19 @@ export default function Layout() {
         </div>
       </aside>
 
+      {/* Main */}
       <main className="main-content">
+        {/* Topbar mobile */}
+        <div className="mobile-topbar">
+          <button className="hamburger-btn" onClick={() => setSidebarOpen(true)}>
+            <Menu size={20} />
+          </button>
+          <span className="mobile-topbar-title">🍔 JANZ</span>
+          <div className="user-avatar" style={{ width: 32, height: 32, fontSize: '0.75rem' }}>
+            {user?.name?.charAt(0).toUpperCase()}
+          </div>
+        </div>
+
         <Outlet />
       </main>
     </div>
