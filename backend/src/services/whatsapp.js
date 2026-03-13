@@ -87,8 +87,45 @@ const message = `¡Hola ${clientName}! 👋\n\nTu pedido *${orderNumber}* ha sid
   }
 }
 
+async function sendOrderReady(phoneNumber, orderNumber, clientName, deliveryType = 'delivery') {
+  if (!isReady || !client) {
+    console.warn('⚠️ WhatsApp no está conectado todavía');
+    return { success: false, reason: 'WhatsApp no conectado' };
+  }
+
+  try {
+    let cleanPhone = phoneNumber.replace(/\D/g, '');
+    if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+    if (cleanPhone.startsWith('1115')) cleanPhone = '11' + cleanPhone.substring(4);
+    let fullPhone = cleanPhone.startsWith('54') ? cleanPhone : `54${cleanPhone}`;
+    if (fullPhone.startsWith('54') && !fullPhone.startsWith('549')) {
+      fullPhone = '549' + fullPhone.substring(2);
+    }
+
+    const chatId = `${fullPhone}@c.us`;
+
+    const message = deliveryType === 'takeaway'
+      ? `¡Hola ${clientName}! 🥡\n\nTu pedido *${orderNumber}* está *listo para retirar*. ✅\n\nPodés pasar a buscarlo cuando quieras. Te esperamos! 😊\n\n_Gracias por elegirnos — Janz Burgers_ 🔥`
+      : `¡Hola ${clientName}! 🛵\n\nTu pedido *${orderNumber}* está *listo y en camino*. ✅\n\nEn instantes llega a tu puerta. ¡Gracias por la espera!\n\n_Janz Burgers_ 🍔🔥`;
+
+    const isRegistered = await client.isRegisteredUser(chatId);
+    if (!isRegistered) {
+      console.warn(`⚠️ El número ${fullPhone} no está registrado en WhatsApp`);
+      return { success: false, reason: 'Número no registrado en WhatsApp' };
+    }
+
+    await client.sendMessage(chatId, message);
+    console.log(`✅ WhatsApp "listo" (${deliveryType}) enviado a ${fullPhone} - Pedido ${orderNumber}`);
+    return { success: true };
+
+  } catch (error) {
+    console.error('❌ Error enviando WhatsApp:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 function getWhatsAppStatus() {
   return { connected: isReady };
 }
 
-module.exports = { sendOrderConfirmation, getWhatsAppStatus, getCurrentQR };
+module.exports = { sendOrderConfirmation, sendOrderReady, getWhatsAppStatus, getCurrentQR };

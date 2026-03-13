@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Product } = require('../models/Product');
 const { Client, Order } = require('../models/Order');
+const Additional = require('../models/Additional');
 
 // Check if store is open
 function isOperationalDay() {
@@ -16,6 +17,7 @@ router.get('/menu', async (req, res) => {
   try {
     const open = isOperationalDay();
     const products = await Product.find({ active: true }).sort('name variant');
+    const additionals = await Additional.find({ active: true }).sort('name');
     
     const grouped = products.reduce((acc, p) => {
       if (!acc[p.name]) acc[p.name] = [];
@@ -28,7 +30,7 @@ router.get('/menu', async (req, res) => {
       return acc;
     }, {});
 
-    res.json({ open, menu: grouped });
+    res.json({ open, menu: grouped, additionals });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -79,12 +81,27 @@ router.post('/order', async (req, res) => {
     for (const item of items) {
       const product = await Product.findById(item.product);
       if (!product) continue;
+
+      // Resolve additionals for this item
+      const resolvedAdditionals = [];
+      for (const a of (item.additionals || [])) {
+        const add = await Additional.findById(a.additional);
+        if (!add) continue;
+        resolvedAdditionals.push({
+          additional: add._id,
+          name: add.name,
+          unitPrice: add.price,
+          quantity: a.quantity || 1
+        });
+      }
+
       orderItems.push({
         product: product._id,
         productName: product.name,
         variant: product.variant,
         quantity: item.quantity,
-        unitPrice: product.salePrice
+        unitPrice: product.salePrice,
+        additionals: resolvedAdditionals
       });
     }
 

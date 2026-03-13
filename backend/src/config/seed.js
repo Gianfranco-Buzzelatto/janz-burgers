@@ -5,6 +5,7 @@ const Stock = require('../models/Stock');
 const { Recipe, Product } = require('../models/Product');
 const { Client } = require('../models/Order');
 const User = require('../models/User');
+const Additional = require('../models/Additional');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/janzburgers';
 
@@ -18,7 +19,8 @@ async function seed() {
     Stock.deleteMany({}),
     Recipe.deleteMany({}),
     Product.deleteMany({}),
-    User.deleteMany({})
+    User.deleteMany({}),
+    Additional.deleteMany({})
   ]);
 
   // Create admin user
@@ -138,86 +140,99 @@ async function seed() {
   // Create product recipes
   const papasCost = Math.round(findIng('Papas fritas').costPerUnit * 200);
   
-  const recipeTemplates = {
-    cheeseburger: {
-      name: 'Receta Cheeseburger',
-      ingredients: [
-        { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
-        { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' }
-      ]
-    },
-    clasicona: {
-      name: 'Receta Clasicona',
-      ingredients: [
-        { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
-        { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' },
-        { ingredient: findIng('Lechuga')._id, quantity: 0.33, unit: 'planta' },
-        { ingredient: findIng('Tomate')._id, quantity: 0.25, unit: 'unidad' }
-      ]
-    },
-    janz: {
-      name: 'Receta Janz',
-      ingredients: [
-        { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
-        { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' },
-        { ingredient: findIng('Cebolla')._id, quantity: 0.25, unit: 'unidad' },
-        { ingredient: findIng('Harina')._id, quantity: 30, unit: 'g' },
-        { ingredient: findIng('Aceite')._id, quantity: 50, unit: 'ml' }
-      ]
-    },
-    cava: {
-      name: 'Receta Cava',
-      ingredients: [
-        { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
-        { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' },
-        { ingredient: findIng('Panceta')._id, quantity: 50, unit: 'g' },
-        { ingredient: findIng('Huevo')._id, quantity: 1, unit: 'unidad' }
-      ]
-    },
-    smashOnion: {
-      name: 'Receta Smash Onion',
-      ingredients: [
-        { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
-        { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' },
-        { ingredient: findIng('Cebolla')._id, quantity: 0.25, unit: 'unidad' }
-      ]
-    }
+  // Helper: build recipe ingredients multiplied by number of patties
+  // variants: x1=1 medallón, x2=2 medallones, x3=3 medallones
+  const variantMultiplier = { x1: 1, x2: 2, x3: 3 };
+
+  // Base recipe definitions (per single patty)
+  const baseRecipes = {
+    cheeseburger: [
+      { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
+      { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' }
+    ],
+    clasicona: [
+      { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
+      { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' },
+      { ingredient: findIng('Lechuga')._id, quantity: 0.33, unit: 'planta' },
+      { ingredient: findIng('Tomate')._id, quantity: 0.25, unit: 'unidad' }
+    ],
+    janz: [
+      { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
+      { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' },
+      { ingredient: findIng('Cebolla')._id, quantity: 0.25, unit: 'unidad' },
+      { ingredient: findIng('Harina')._id, quantity: 30, unit: 'g' },
+      { ingredient: findIng('Aceite')._id, quantity: 50, unit: 'ml' }
+    ],
+    cava: [
+      { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
+      { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' },
+      { ingredient: findIng('Panceta')._id, quantity: 50, unit: 'g' },
+      { ingredient: findIng('Huevo')._id, quantity: 1, unit: 'unidad' }
+    ],
+    smashOnion: [
+      { ingredient: findIng('Carne picada')._id, quantity: 110, unit: 'g' },
+      { ingredient: findIng('Cheddar en fetas')._id, quantity: 2, unit: 'fetas' },
+      { ingredient: findIng('Cebolla')._id, quantity: 0.25, unit: 'unidad' }
+    ]
   };
 
+  const burgerNames = {
+    cheeseburger: 'Cheeseburger',
+    clasicona: 'Clasicona',
+    janz: 'Janz',
+    cava: 'Cava',
+    smashOnion: 'Smash Onion'
+  };
+
+  // Create one recipe per burger per variant (x1, x2, x3)
   const createdRecipes = {};
-  for (const [key, data] of Object.entries(recipeTemplates)) {
-    let cost = panRecipe.totalCost + papasCost; // pan + papas included in all
-    for (const ri of data.ingredients) {
-      const ing = ingredients.find(i => i._id.toString() === ri.ingredient.toString());
-      if (ing) cost += (ing.costPerUnit || 0) * ri.quantity;
+  for (const [key, baseIngredients] of Object.entries(baseRecipes)) {
+    createdRecipes[key] = {};
+    for (const [variant, multiplier] of Object.entries(variantMultiplier)) {
+      // Multiply each ingredient quantity by the number of patties
+      const scaledIngredients = baseIngredients.map(ri => ({
+        ...ri,
+        quantity: ri.quantity * multiplier
+      }));
+
+      let cost = panRecipe.totalCost + papasCost; // pan + papas: fixed per order
+      for (const ri of scaledIngredients) {
+        const ing = ingredients.find(i => i._id.toString() === ri.ingredient.toString());
+        if (ing) cost += (ing.costPerUnit || 0) * ri.quantity;
+      }
+
+      const recipe = new Recipe({
+        name: `Receta ${burgerNames[key]} ${variant}`,
+        ingredients: scaledIngredients,
+        totalCost: Math.round(cost)
+      });
+      await recipe.save();
+      createdRecipes[key][variant] = recipe;
     }
-    const recipe = new Recipe({ ...data, totalCost: Math.round(cost) });
-    await recipe.save();
-    createdRecipes[key] = recipe;
   }
 
-  // Create products from Excel pricing
+  // Create products from Excel pricing — each variant linked to its own recipe
   const productsData = [
     // Cheeseburger
-    { name: 'Cheeseburger', variant: 'x1', salePrice: 10000, recipe: createdRecipes.cheeseburger._id },
-    { name: 'Cheeseburger', variant: 'x2', salePrice: 12000, recipe: createdRecipes.cheeseburger._id },
-    { name: 'Cheeseburger', variant: 'x3', salePrice: 14000, recipe: createdRecipes.cheeseburger._id },
+    { name: 'Cheeseburger', variant: 'x1', salePrice: 10000, recipe: createdRecipes.cheeseburger.x1._id },
+    { name: 'Cheeseburger', variant: 'x2', salePrice: 12000, recipe: createdRecipes.cheeseburger.x2._id },
+    { name: 'Cheeseburger', variant: 'x3', salePrice: 14000, recipe: createdRecipes.cheeseburger.x3._id },
     // Clasicona
-    { name: 'Clasicona', variant: 'x1', salePrice: 11000, recipe: createdRecipes.clasicona._id },
-    { name: 'Clasicona', variant: 'x2', salePrice: 13000, recipe: createdRecipes.clasicona._id },
-    { name: 'Clasicona', variant: 'x3', salePrice: 15000, recipe: createdRecipes.clasicona._id },
+    { name: 'Clasicona', variant: 'x1', salePrice: 11000, recipe: createdRecipes.clasicona.x1._id },
+    { name: 'Clasicona', variant: 'x2', salePrice: 13000, recipe: createdRecipes.clasicona.x2._id },
+    { name: 'Clasicona', variant: 'x3', salePrice: 15000, recipe: createdRecipes.clasicona.x3._id },
     // Janz
-    { name: 'Janz', variant: 'x1', salePrice: 11000, recipe: createdRecipes.janz._id },
-    { name: 'Janz', variant: 'x2', salePrice: 13000, recipe: createdRecipes.janz._id },
-    { name: 'Janz', variant: 'x3', salePrice: 16000, recipe: createdRecipes.janz._id },
+    { name: 'Janz', variant: 'x1', salePrice: 11000, recipe: createdRecipes.janz.x1._id },
+    { name: 'Janz', variant: 'x2', salePrice: 13000, recipe: createdRecipes.janz.x2._id },
+    { name: 'Janz', variant: 'x3', salePrice: 16000, recipe: createdRecipes.janz.x3._id },
     // Cava
-    { name: 'Cava', variant: 'x1', salePrice: 13000, recipe: createdRecipes.cava._id },
-    { name: 'Cava', variant: 'x2', salePrice: 16000, recipe: createdRecipes.cava._id },
-    { name: 'Cava', variant: 'x3', salePrice: 19000, recipe: createdRecipes.cava._id },
+    { name: 'Cava', variant: 'x1', salePrice: 13000, recipe: createdRecipes.cava.x1._id },
+    { name: 'Cava', variant: 'x2', salePrice: 16000, recipe: createdRecipes.cava.x2._id },
+    { name: 'Cava', variant: 'x3', salePrice: 19000, recipe: createdRecipes.cava.x3._id },
     // Smash Onion
-    { name: 'Smash Onion', variant: 'x1', salePrice: 12000, recipe: createdRecipes.smashOnion._id },
-    { name: 'Smash Onion', variant: 'x2', salePrice: 14000, recipe: createdRecipes.smashOnion._id },
-    { name: 'Smash Onion', variant: 'x3', salePrice: 16000, recipe: createdRecipes.smashOnion._id }
+    { name: 'Smash Onion', variant: 'x1', salePrice: 12000, recipe: createdRecipes.smashOnion.x1._id },
+    { name: 'Smash Onion', variant: 'x2', salePrice: 14000, recipe: createdRecipes.smashOnion.x2._id },
+    { name: 'Smash Onion', variant: 'x3', salePrice: 16000, recipe: createdRecipes.smashOnion.x3._id }
   ];
 
   for (const pd of productsData) {
@@ -231,6 +246,23 @@ async function seed() {
   }
 
   console.log(`✅ ${productsData.length} productos creados`);
+
+  // Create additional toppings
+  const additionalsData = [
+    { name: 'Panceta extra', description: '50g de panceta crocante', price: 2500, emoji: '🥓' },
+    { name: 'Huevo frito', description: 'Huevo frito a punto', price: 1500, emoji: '🍳' },
+    { name: 'Cheddar extra', description: '2 fetas de cheddar', price: 1500, emoji: '🧀' },
+    { name: 'Cheddar líquido', description: 'Salsa de cheddar', price: 1200, emoji: '🫕' },
+    { name: 'Cebolla caramelizada', description: 'Cebolla pochada al vino', price: 1000, emoji: '🧅' },
+    { name: 'Papas fritas extra', description: 'Porción adicional de papas', price: 3000, emoji: '🍟' }
+  ];
+
+  for (const ad of additionalsData) {
+    const additional = new Additional(ad);
+    await additional.save();
+  }
+  console.log(`✅ ${additionalsData.length} adicionales creados`);
+
   console.log('\n🎉 Base de datos inicializada exitosamente!');
   console.log('\n📧 Usuarios:');
   console.log('  Admin: admin@janzburgers.com / janz2024');

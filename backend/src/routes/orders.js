@@ -4,7 +4,7 @@ const { Order } = require('../models/Order');
 const { Client } = require('../models/Order');
 const { auth, kitchenOrAdmin } = require('../middleware/auth');
 const { deductStockForOrder } = require('../services/stock.service');
-const { sendOrderConfirmation } = require('../services/whatsapp');
+const { sendOrderConfirmation, sendOrderReady } = require('../services/whatsapp');
 
 // Check if today is operational day (Fri=5, Sat=6, Sun=0)
 function isOperationalDay() {
@@ -128,6 +128,16 @@ router.put('/:id/status', auth, kitchenOrAdmin, async (req, res) => {
       await Client.findByIdAndUpdate(order.client._id, {
         $inc: { totalSpent: order.total }
       });
+    }
+
+    // Notify client when order is ready for pickup/delivery
+    if (status === 'ready' && prevStatus !== 'ready' && order.client?.whatsapp) {
+      sendOrderReady(
+        order.client.whatsapp,
+        order.orderNumber,
+        order.client.name,
+        order.deliveryType
+      ).catch(err => console.error('Error enviando WhatsApp ready:', err.message));
     }
 
     await order.save();

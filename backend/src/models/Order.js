@@ -16,6 +16,14 @@ const clientSchema = new mongoose.Schema({
   active: { type: Boolean, default: true }
 }, { timestamps: true });
 
+// Additional sub-schema within an order item
+const orderItemAdditionalSchema = new mongoose.Schema({
+  additional: { type: mongoose.Schema.Types.ObjectId, ref: 'Additional', required: true },
+  name: { type: String },
+  unitPrice: { type: Number, required: true },
+  quantity: { type: Number, default: 1 }
+}, { _id: false });
+
 // Order item sub-schema
 const orderItemSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
@@ -23,6 +31,7 @@ const orderItemSchema = new mongoose.Schema({
   variant: { type: String },
   quantity: { type: Number, required: true, default: 1 },
   unitPrice: { type: Number, required: true },
+  additionals: [orderItemAdditionalSchema], // toppings extras por ítem
   subtotal: { type: Number },
   notes: { type: String } // e.g. "sin cheddar"
 }, { _id: false });
@@ -46,7 +55,7 @@ const orderSchema = new mongoose.Schema({
   },
   deliveryType: {
     type: String,
-    enum: ['local', 'delivery'],
+    enum: ['local', 'delivery', 'takeaway'],
     default: 'local'
   },
   deliveryAddress: { type: String },
@@ -67,7 +76,10 @@ orderSchema.pre('save', async function(next) {
   // Calculate item subtotals and total
   let total = 0;
   this.items.forEach(item => {
-    item.subtotal = item.unitPrice * item.quantity;
+    const additionalsTotal = (item.additionals || []).reduce(
+      (s, a) => s + (a.unitPrice * (a.quantity || 1)), 0
+    );
+    item.subtotal = (item.unitPrice * item.quantity) + additionalsTotal;
     total += item.subtotal;
   });
   this.total = total + (this.additionals || 0);

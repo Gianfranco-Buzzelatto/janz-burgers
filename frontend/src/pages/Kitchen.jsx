@@ -18,7 +18,22 @@ const STATUS_LABELS = {
 
 function OrderCard({ order, onStatusChange }) {
   const [loading, setLoading] = useState(false);
+  const [deliveryType, setDeliveryType] = useState(order.deliveryType || 'delivery');
+  const [savingType, setSavingType] = useState(false);
   const flow = STATUS_FLOW[order.status];
+
+  const handleDeliveryTypeChange = async (newType) => {
+    setDeliveryType(newType);
+    setSavingType(true);
+    try {
+      await API.put(`/orders/${order._id}`, { deliveryType: newType });
+    } catch (e) {
+      toast.error('Error al actualizar tipo de entrega');
+      setDeliveryType(deliveryType); // revert
+    } finally {
+      setSavingType(false);
+    }
+  };
 
   const handleChange = async () => {
     if (!flow) return;
@@ -31,6 +46,9 @@ function OrderCard({ order, onStatusChange }) {
         if (res.data.whatsappSent?.success) {
           toast.success(`📱 WhatsApp enviado a ${order.client?.name}`);
         }
+      } else if (flow.next === 'ready') {
+        toast.success(`🔔 Pedido ${order.orderNumber} listo para ${deliveryType === 'delivery' ? 'entregar' : 'retirar'}`);
+        toast.success(`📱 WhatsApp enviado a ${order.client?.name}`);
       } else {
         toast.success(`Pedido ${order.orderNumber} → ${STATUS_LABELS[flow.next] || flow.next}`);
       }
@@ -62,6 +80,34 @@ function OrderCard({ order, onStatusChange }) {
             hace {elapsed}min
           </div>
         </div>
+      </div>
+
+      {/* Delivery type selector */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button
+          onClick={() => handleDeliveryTypeChange('delivery')}
+          disabled={savingType}
+          style={{
+            flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+            fontWeight: 700, fontSize: '0.78rem',
+            background: deliveryType === 'delivery' ? 'rgba(232,184,75,0.2)' : 'var(--dark)',
+            color: deliveryType === 'delivery' ? 'var(--gold)' : 'var(--gray)',
+            outline: deliveryType === 'delivery' ? '1px solid var(--gold)' : '1px solid var(--border)'
+          }}>
+          🛵 Delivery
+        </button>
+        <button
+          onClick={() => handleDeliveryTypeChange('takeaway')}
+          disabled={savingType}
+          style={{
+            flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+            fontWeight: 700, fontSize: '0.78rem',
+            background: deliveryType === 'takeaway' ? 'rgba(129,140,248,0.15)' : 'var(--dark)',
+            color: deliveryType === 'takeaway' ? '#818cf8' : 'var(--gray)',
+            outline: deliveryType === 'takeaway' ? '1px solid #818cf8' : '1px solid var(--border)'
+          }}>
+          🥡 Take Away
+        </button>
       </div>
 
       {/* Items */}
