@@ -158,8 +158,9 @@ export default function PublicOrder() {
     }
   };
 
-  const discount = couponStatus?.valid ? Math.round(total * couponStatus.discountPercent / 100) : 0;
-  const totalWithDiscount = total - discount;
+const total = cart.reduce((s, i) => s + itemTotal(i), 0);
+const discount = couponStatus?.valid ? Math.round(total * couponStatus.discountPercent / 100) : 0;
+const totalWithDiscount = total - discount;
 
   const handleSubmit = async () => {
     if (!client.name || !client.whatsapp) { toast.error('Nombre y WhatsApp son obligatorios'); return; }
