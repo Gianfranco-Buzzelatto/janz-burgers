@@ -30,6 +30,7 @@ app.use('/api/clients', require('./routes/clients'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/shopping', require('./routes/shopping'));
 app.use('/api/additionals', require('./routes/additionals'));
+app.use('/api/coupons', require('./routes/coupons'));
 app.use('/api/public', require('./routes/public'));
 app.get('/api/whatsapp/qr', async (req, res) => {
   const qr = getCurrentQR();
