@@ -417,7 +417,7 @@ export default function PublicOrder() {
                       const unavailable = !p.available;
                       return (
                         <div key={p._id} style={{ background: 'rgba(10,10,10,0.82)', backdropFilter: 'blur(10px)', border: `1px solid ${inCart ? '#E8B84B' : unavailable ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 14, overflow: 'hidden', opacity: unavailable ? 0.5 : 1 }}>
-                          {p.image && <img src={p.image} alt={name} style={{ width: '100%', height: 170, objectFit: 'cover', display: 'block' }} />}
+                          {p.image && <img src={p.image} alt={name} style={{ width: '100%', height: 260, objectFit: 'cover', display: 'block' }} />}
                           <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontWeight: 700, color: 'white' }}>
