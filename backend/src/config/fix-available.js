@@ -1,29 +1,47 @@
 /**
- * fix-available.js
- * Marca todos los productos activos como disponibles (available: true)
- * Uso: node src/config/fix-available.js
+ * fix-additionals.js
+ * - Elimina: Cebolla caramelizada, Cheddar líquido
+ * - Agrega: Medallón de 100gr ($3000)
+ * Uso: node src/config/fix-additionals.js
  */
-
+ 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { Product } = require('../models/Product');
-
+const Additional = require('../models/Additional');
+ 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/janzburgers';
-
-async function fixAvailable() {
+ 
+async function fixAdditionals() {
   await mongoose.connect(MONGODB_URI);
   console.log('✅ Conectado a MongoDB...');
-
-  const result = await Product.updateMany(
-    { active: true },
-    { $set: { available: true } }
-  );
-
-  console.log(`✅ ${result.modifiedCount} productos marcados como disponibles`);
+ 
+  // Eliminar
+  const deleted = await Additional.deleteMany({
+    name: { $in: ['Cebolla caramelizada', 'Cheddar líquido'] }
+  });
+  console.log(`🗑️  ${deleted.deletedCount} adicionales eliminados`);
+ 
+  // Agregar medallón
+  const existing = await Additional.findOne({ name: 'Medallón de 100gr' });
+  if (!existing) {
+    await new Additional({
+      name: 'Medallón de 100gr',
+      description: 'Medallón extra de carne de 100gr',
+      price: 3000,
+      emoji: '🥩',
+      active: true
+    }).save();
+    console.log('✅ Medallón de 100gr agregado');
+  } else {
+    console.log('⚠️  Medallón de 100gr ya existe');
+  }
+ 
+  console.log('🎉 Listo!');
   await mongoose.disconnect();
 }
-
-fixAvailable().catch(err => {
+ 
+fixAdditionals().catch(err => {
   console.error('❌ Error:', err);
   process.exit(1);
 });
+ 
