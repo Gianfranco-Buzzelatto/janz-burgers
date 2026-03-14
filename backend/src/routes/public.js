@@ -26,8 +26,11 @@ router.get('/menu', async (req, res) => {
         _id: p._id, 
         name: p.name, 
         variant: p.variant, 
-        salePrice: p.salePrice 
-      });
+        salePrice: p.salePrice,
+        available: p.available,
+        image: p.image,
+        description: p.description
+});
       return acc;
     }, {});
 
