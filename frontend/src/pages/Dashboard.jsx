@@ -1,127 +1,174 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, ShoppingBag, Clock, CheckCircle } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { TrendingUp, ShoppingBag, Users, Package, Trophy, FlaskConical, ChevronLeft, ChevronRight } from 'lucide-react';
 import API from '../utils/api';
 
 const fmt = n => `$${Number(n || 0).toLocaleString('es-AR')}`;
+const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 export default function Dashboard() {
-  const [data, setData] = useState(null);
+  const [stats, setStats] = useState(null);
   const [sales, setSales] = useState(null);
-  const [storeStatus, setStoreStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [salesLoading, setSalesLoading] = useState(true);
+  const now = new Date();
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
 
   useEffect(() => {
-    Promise.all([
-      API.get('/dashboard'),
-      API.get('/dashboard/sales'),
-      API.get('/orders/system/status')
-    ]).then(([d, s, st]) => {
-      setData(d.data);
-      setSales(s.data);
-      setStoreStatus(st.data);
-    }).finally(() => setLoading(false));
+    API.get('/dashboard').then(r => setStats(r.data)).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="loading-screen"><div className="spinner"/></div>;
+  useEffect(() => {
+    setSalesLoading(true);
+    API.get(`/dashboard/sales?month=${month}&year=${year}`)
+      .then(r => setSales(r.data))
+      .finally(() => setSalesLoading(false));
+  }, [month, year]);
 
-  const statusLabels = {
-    pending: 'Pendiente', confirmed: 'Confirmado',
-    preparing: 'Preparando', ready: 'Listo', delivered: 'Entregado', cancelled: 'Cancelado'
-  };
+  const prevMonth = () => { if (month === 1) { setMonth(12); setYear(y => y - 1); } else setMonth(m => m - 1); };
+  const nextMonth = () => { if (month === 12) { setMonth(1); setYear(y => y + 1); } else setMonth(m => m + 1); };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>;
 
   return (
     <>
       <div className="page-header">
         <h1>Dashboard</h1>
-        <div className={`badge ${storeStatus?.open ? 'badge-ok' : 'badge-cancelled'}`} style={{ fontSize: '0.85rem', padding: '6px 14px' }}>
-          {storeStatus?.open ? '🟢 Abierto' : '🔴 Cerrado hoy'}
-        </div>
       </div>
-
       <div className="page-body">
-        {!storeStatus?.open && (
-          <div className="alert alert-info mb-4">
-            📅 {storeStatus?.message} — El admin puede gestionar stock y precios igual.
-          </div>
-        )}
 
-        {/* Stats */}
-        <div className="stat-grid">
-          <div className="card">
-            <div className="card-title">Ventas Hoy</div>
-            <div className="card-value text-gold">{fmt(data?.today?.revenue)}</div>
-            <div className="text-sm text-gray mt-2">{data?.today?.orders} pedidos</div>
+        {/* Stats hoy */}
+        <div className="stat-grid" style={{ marginBottom: 24 }}>
+          <div className="stat-card">
+            <div className="stat-label">Pedidos Hoy</div>
+            <div className="stat-value">{stats?.today?.orders || 0}</div>
           </div>
-          <div className="card">
-            <div className="card-title">Ventas Semana</div>
-            <div className="card-value">{fmt(data?.week?.revenue)}</div>
-            <div className="text-sm text-gray mt-2">{data?.week?.orders} pedidos</div>
+          <div className="stat-card">
+            <div className="stat-label">Ingresos Hoy</div>
+            <div className="stat-value" style={{ fontSize: '1.4rem' }}>{fmt(stats?.today?.revenue)}</div>
           </div>
-          <div className="card">
-            <div className="card-title">Pedidos Activos</div>
-            <div className="card-value text-gold">{data?.pending?.length || 0}</div>
-            <div className="text-sm text-gray mt-2">en proceso ahora</div>
+          <div className="stat-card">
+            <div className="stat-label">Pedidos Esta Semana</div>
+            <div className="stat-value">{stats?.week?.orders || 0}</div>
           </div>
-          <div className="card">
-            <div className="card-title">Ventas del Mes</div>
-            <div className="card-value">{fmt(sales?.totalRevenue)}</div>
-            <div className="text-sm text-gray mt-2">{sales?.orders} pedidos</div>
+          <div className="stat-card">
+            <div className="stat-label">Ingresos Semana</div>
+            <div className="stat-value" style={{ fontSize: '1.4rem' }}>{fmt(stats?.week?.revenue)}</div>
           </div>
         </div>
 
-        <div className="grid-2" style={{ gap: 24 }}>
-          {/* Pending orders */}
-          <div>
-            <div className="section-title">⏳ Pedidos Pendientes</div>
-            {data?.pending?.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', color: 'var(--gray)', padding: 32 }}>
-                Sin pedidos activos 🎉
+        {/* Selector mes */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+          <button onClick={prevMonth} style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer' }}><ChevronLeft size={20} /></button>
+          <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.4rem', color: 'var(--gold)', minWidth: 180, textAlign: 'center' }}>
+            {months[month - 1]} {year}
+          </div>
+          <button onClick={nextMonth} style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer' }}><ChevronRight size={20} /></button>
+        </div>
+
+        {salesLoading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+        ) : sales ? (
+          <>
+            {/* Stats del mes */}
+            <div className="stat-grid" style={{ marginBottom: 24 }}>
+              <div className="stat-card">
+                <div className="stat-label">Pedidos del Mes</div>
+                <div className="stat-value">{sales.orders}</div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {data?.pending?.map(order => (
-                  <div key={order._id} className="card" style={{ padding: '14px 18px' }}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{order.orderNumber}</div>
-                        <div className="text-sm text-gray">{order.client?.name}</div>
+              <div className="stat-card">
+                <div className="stat-label">Ingresos del Mes</div>
+                <div className="stat-value" style={{ fontSize: '1.3rem' }}>{fmt(sales.totalRevenue)}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Ticket Promedio</div>
+                <div className="stat-value" style={{ fontSize: '1.3rem' }}>{fmt(sales.avgTicket)}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Clientes Únicos</div>
+                <div className="stat-value">{sales.clients?.total || 0}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: 4 }}>
+                  {sales.clients?.new || 0} nuevos · {sales.clients?.recurring || 0} recurrentes
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginBottom: 24 }}>
+
+              {/* Top 5 burgers */}
+              <div className="card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontFamily: 'Bebas Neue', fontSize: '1.2rem', color: 'var(--gold)' }}>
+                  <Trophy size={18} /> TOP 5 HAMBURGUESAS
+                </div>
+                {sales.top5?.length === 0 ? (
+                  <div style={{ color: 'var(--gray)', textAlign: 'center', padding: 20 }}>Sin ventas este mes</div>
+                ) : (
+                  sales.top5?.map((p, i) => (
+                    <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < sales.top5.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontFamily: 'Bebas Neue', fontSize: '1.3rem', color: i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'var(--gray)', width: 24 }}>
+                          {i + 1}
+                        </span>
+                        <span style={{ fontSize: '0.9rem' }}>{p.name}</span>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span className={`badge badge-${order.status}`}>{statusLabels[order.status]}</span>
-                        <div className="text-sm text-gold mt-2">{fmt(order.total)}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--gold)' }}>{p.units} uds</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>{fmt(p.revenue)}</div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Top products chart */}
-          <div>
-            <div className="section-title">🍔 Productos Más Vendidos</div>
-            {sales?.productSales?.length > 0 ? (
-              <div className="card" style={{ padding: '20px' }}>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={sales.productSales.slice(0, 6)}>
-                    <XAxis dataKey="name" tick={{ fill: '#888', fontSize: 10 }} />
-                    <YAxis tick={{ fill: '#888', fontSize: 10 }} />
-                    <Tooltip
-                      contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8 }}
-                      formatter={(v) => [v, 'Unidades']}
-                    />
-                    <Bar dataKey="units" fill="#E8B84B" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              {/* Top Buyers */}
+              <div className="card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontFamily: 'Bebas Neue', fontSize: '1.2rem', color: 'var(--gold)' }}>
+                  <Users size={18} /> TOP CLIENTES
+                </div>
+                {sales.clients?.topBuyers?.length === 0 ? (
+                  <div style={{ color: 'var(--gray)', textAlign: 'center', padding: 20 }}>Sin datos este mes</div>
+                ) : (
+                  sales.clients?.topBuyers?.map((c, i) => (
+                    <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < sales.clients.topBuyers.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontFamily: 'Bebas Neue', fontSize: '1.3rem', color: 'var(--gray)', width: 24 }}>{i + 1}</span>
+                        <div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{c.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--gray)' }}>{c.whatsapp}</div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--gold)' }}>{c.ordersThisMonth} pedidos</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>{c.totalOrders} totales</div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-            ) : (
-              <div className="card" style={{ textAlign: 'center', color: 'var(--gray)', padding: 32 }}>
-                Sin datos de ventas aún
+            </div>
+
+            {/* Consumo de insumos */}
+            {sales.ingredientUsage?.length > 0 && (
+              <div className="card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontFamily: 'Bebas Neue', fontSize: '1.2rem', color: 'var(--gold)' }}>
+                  <FlaskConical size={18} /> CONSUMO DE INSUMOS — {months[month - 1].toUpperCase()} {year}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
+                  {sales.ingredientUsage.map(ing => (
+                    <div key={ing.name} style={{ background: '#1a1a1a', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{ing.name}</div>
+                      <div style={{ fontSize: '1.1rem', color: 'var(--gold)', fontWeight: 700, marginTop: 2 }}>
+                        {ing.quantity} <span style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>{ing.unit}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
-        </div>
+          </>
+        ) : (
+          <div style={{ color: 'var(--gray)', textAlign: 'center', padding: 40 }}>Sin datos para este período</div>
+        )}
       </div>
     </>
   );
