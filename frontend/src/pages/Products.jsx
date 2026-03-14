@@ -278,6 +278,203 @@ function NewProductWizard({ ingredients, config, onClose, onSaved }) {
   );
 }
 
+
+// Modal edición completa de producto existente
+function EditProductModal({ product, ingredients, config, onClose, onSaved }) {
+  const [description, setDescription] = useState(product.description || '');
+  const [imagePreview, setImagePreview] = useState(product.image || null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUrl, setImageUrl] = useState(product.image || '');
+  const [recipeRows, setRecipeRows] = useState(
+    product.recipe?.ingredients?.length > 0
+      ? product.recipe.ingredients.map(ri => ({
+          ingredient: ri.ingredient?._id || ri.ingredient || '',
+          quantity: ri.quantity || '',
+          unit: ri.unit || 'g'
+        }))
+      : [{ ingredient: '', quantity: '', unit: 'g' }]
+  );
+  const [salePrice, setSalePrice] = useState(product.salePrice || '');
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef();
+
+  const totalIndirectPct = Object.values(config.indirectCosts || {}).reduce((s, v) => s + Number(v), 0);
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImagePreview(URL.createObjectURL(file));
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await API.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setImageUrl(res.data.url);
+      toast.success('Foto subida ✓');
+    } catch {
+      toast.error('Error al subir la foto');
+      setImagePreview(product.image || null);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const calcCost = () => {
+    return recipeRows.reduce((sum, row) => {
+      if (!row.ingredient || !row.quantity) return sum;
+      const ing = ingredients.find(i => i._id === row.ingredient);
+      if (!ing) return sum;
+      return sum + (ing.costPerUnit || 0) * Number(row.quantity);
+    }, 0);
+  };
+
+  const ingredientCost = calcCost();
+  const indirectCost = Math.round(ingredientCost * totalIndirectPct / 100);
+  const totalCost = Math.round(ingredientCost + indirectCost);
+  const margin = salePrice > 0 ? Math.round(((salePrice - totalCost) / salePrice) * 100) : 0;
+
+  const handleSave = async () => {
+    if (!salePrice) { toast.error('El precio es obligatorio'); return; }
+    setSaving(true);
+    try {
+      // Actualizar receta si cambió
+      const validRows = recipeRows.filter(r => r.ingredient && r.quantity);
+      if (validRows.length > 0 && product.recipe?._id) {
+        await API.put(`/products/recipes/${product.recipe._id}`, {
+          ingredients: validRows.map(r => ({
+            ingredient: r.ingredient,
+            quantity: Number(r.quantity),
+            unit: r.unit
+          }))
+        });
+      }
+
+      // Actualizar producto
+      await API.put(`/products/${product._id}`, {
+        salePrice: Number(salePrice),
+        description: description.trim(),
+        image: imageUrl || product.image || ''
+      });
+
+      // Actualizar también el resto de variantes con descripción e imagen
+      toast.success('Producto actualizado ✓');
+      onSaved();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{ maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>✏️ Editar {product.name} {product.variant}</h2>
+          <button className="btn-icon" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+
+          {/* Foto */}
+          <div className="form-group">
+            <label>Foto</label>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+            {imagePreview ? (
+              <div style={{ position: 'relative' }}>
+                <img src={imagePreview} alt="preview" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+                {uploadingImage && (
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
+                    <div className="spinner" />
+                  </div>
+                )}
+                <button onClick={() => { setImagePreview(null); setImageUrl(''); }}
+                  style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)', border: 'none', color: 'white', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => fileRef.current.click()}
+                style={{ width: '100%', background: '#1a1a1a', border: '2px dashed var(--border)', borderRadius: 8, padding: '24px', cursor: 'pointer', color: 'var(--gray)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <Upload size={22} />
+                <span style={{ fontSize: '0.85rem' }}>Subir foto</span>
+              </button>
+            )}
+          </div>
+
+          {/* Descripción */}
+          <div className="form-group">
+            <label>Descripción</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)}
+              placeholder="Describí esta hamburguesa..."
+              rows={3} style={{ width: '100%', background: '#1a1a1a', border: '1px solid var(--border)', borderRadius: 8, color: 'white', padding: '10px 14px', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+          </div>
+
+          {/* Receta */}
+          <div className="form-group">
+            <label>Receta</label>
+            {recipeRows.map((row, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 70px 36px', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                <select value={row.ingredient} onChange={e => setRecipeRows(prev => prev.map((r, j) => j === i ? { ...r, ingredient: e.target.value } : r))}>
+                  <option value="">Ingrediente...</option>
+                  {ingredients.map(ing => (
+                    <option key={ing._id} value={ing._id}>{ing.name} ({ing.unit})</option>
+                  ))}
+                </select>
+                <input type="number" placeholder="Cant." value={row.quantity}
+                  onChange={e => setRecipeRows(prev => prev.map((r, j) => j === i ? { ...r, quantity: e.target.value } : r))} />
+                <input placeholder="Ud." value={row.unit}
+                  onChange={e => setRecipeRows(prev => prev.map((r, j) => j === i ? { ...r, unit: e.target.value } : r))} />
+                <button className="btn-icon" style={{ color: 'var(--red)' }}
+                  onClick={() => setRecipeRows(prev => prev.filter((_, j) => j !== i))}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            <button className="btn btn-secondary" style={{ width: '100%', marginTop: 4 }}
+              onClick={() => setRecipeRows(prev => [...prev, { ingredient: '', quantity: '', unit: 'g' }])}>
+              <Plus size={14} /> Agregar ingrediente
+            </button>
+          </div>
+
+          {/* Preview costos */}
+          {totalCost > 0 && (
+            <div style={{ background: 'rgba(232,184,75,0.06)', border: '1px solid rgba(232,184,75,0.2)', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: 4 }}>
+                <span style={{ color: 'var(--gray)' }}>Ingredientes</span><span>{fmt(Math.round(ingredientCost))}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: 4 }}>
+                <span style={{ color: 'var(--gray)' }}>Indirectos ({totalIndirectPct}%)</span><span>{fmt(indirectCost)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderTop: '1px solid rgba(232,184,75,0.2)', paddingTop: 8 }}>
+                <span>Costo total</span><span style={{ color: 'var(--gold)' }}>{fmt(totalCost)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Precio */}
+          <div className="form-group">
+            <label>Precio de venta *
+              {salePrice > 0 && totalCost > 0 && (
+                <span style={{ marginLeft: 10, color: margin >= 50 ? 'var(--green)' : margin >= 30 ? 'var(--yellow)' : 'var(--red)', fontWeight: 700 }}>
+                  Margen: {margin}%
+                </span>
+              )}
+            </label>
+            <input type="number" value={salePrice} onChange={e => setSalePrice(e.target.value)} placeholder="Precio de venta" />
+          </div>
+
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Guardando...' : '✓ Guardar Cambios'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [ingredients, setIngredients] = useState([]);
@@ -287,6 +484,7 @@ export default function Products() {
   const [editPrice, setEditPrice] = useState('');
   const [showConfig, setShowConfig] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [editConfig, setEditConfig] = useState(null);
   const [savingConfig, setSavingConfig] = useState(false);
   const [expandedRecipe, setExpandedRecipe] = useState(null);
@@ -445,7 +643,7 @@ export default function Products() {
                                   <button className="btn-icon" onClick={() => setEditing(null)} style={{ color: 'var(--red)' }}><X size={14} /></button>
                                 </>
                               ) : (
-                                <button className="btn-icon" onClick={() => startEdit(p)}><Edit2 size={14} /></button>
+                                <button className="btn-icon" onClick={() => setEditingProduct(p)}><Edit2 size={14} /></button>
                               )}
                               {p.recipe?.ingredients?.length > 0 && (
                                 <button className="btn-icon" onClick={() => setExpandedRecipe(isExpanded ? null : p._id)}>
@@ -487,6 +685,17 @@ export default function Products() {
           </div>
         ))}
       </div>
+
+      {/* Modal edición completa */}
+      {editingProduct && (
+        <EditProductModal
+          product={editingProduct}
+          ingredients={ingredients}
+          config={config}
+          onClose={() => setEditingProduct(null)}
+          onSaved={() => { loadData(); setEditingProduct(null); }}
+        />
+      )}
 
       {/* Modal nueva burger */}
       {showNewProduct && (

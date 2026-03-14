@@ -3,6 +3,7 @@ import { Instagram } from 'lucide-react';
 import API from '../utils/api';
 import toast from 'react-hot-toast';
 import logoJanz from '../assets/logo-janz.png';
+import heroBurger from '../assets/hero-burger.png';
 
 const fmt = n => `$${Number(n || 0).toLocaleString('es-AR')}`;
 
@@ -40,8 +41,8 @@ function AdditionalsModal({ product, availableAdditionals, onConfirm, onClose })
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 200 }}>
-      <div style={{ background: '#1a1a1a', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 520, padding: 24, maxHeight: '80vh', overflowY: 'auto' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 200 }}>
+      <div style={{ background: '#111', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 520, padding: 24, maxHeight: '80vh', overflowY: 'auto' }}>
         <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.6rem', color: 'white', marginBottom: 4 }}>
           {product.name} <span style={{ color: '#E8B84B' }}>{product.variant}</span>
         </div>
@@ -49,7 +50,7 @@ function AdditionalsModal({ product, availableAdditionals, onConfirm, onClose })
         {availableAdditionals.map(add => {
           const qty = selected[add._id] || 0;
           return (
-            <div key={add._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: qty > 0 ? 'rgba(232,184,75,0.08)' : '#111', border: `1px solid ${qty > 0 ? '#E8B84B' : '#2a2a2a'}`, borderRadius: 10, padding: '12px 16px', marginBottom: 10 }}>
+            <div key={add._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: qty > 0 ? 'rgba(232,184,75,0.08)' : '#1a1a1a', border: `1px solid ${qty > 0 ? '#E8B84B' : '#2a2a2a'}`, borderRadius: 10, padding: '12px 16px', marginBottom: 10 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ color: 'white', fontWeight: 600 }}>{add.emoji} {add.name}</div>
                 {add.description && <div style={{ color: '#666', fontSize: '0.78rem', marginTop: 2 }}>{add.description}</div>}
@@ -162,7 +163,6 @@ export default function PublicOrder() {
   const totalWithDiscount = total - discount;
 
   const handleSubmit = async () => {
-    // Validaciones obligatorias
     if (!client.name.trim()) { toast.error('El nombre es obligatorio'); return; }
     if (!client.whatsapp.trim()) { toast.error('El WhatsApp es obligatorio'); return; }
     if (deliveryType === 'delivery' && !client.address.trim()) { toast.error('La dirección es obligatoria para delivery'); return; }
@@ -172,15 +172,11 @@ export default function PublicOrder() {
     setSubmitting(true);
     try {
       const res = await API.post('/public/order', {
-        client,
-        items: cart.map(i => ({
-          product: i.product,
-          quantity: i.quantity,
+        client, items: cart.map(i => ({
+          product: i.product, quantity: i.quantity,
           additionals: (i.additionals || []).map(a => ({ additional: a.additional, quantity: a.quantity }))
         })),
-        deliveryType,
-        paymentMethod,
-        notes: client.notes,
+        deliveryType, paymentMethod, notes: client.notes,
         couponCode: couponStatus?.valid ? couponCode.trim() : null
       });
       setOrderResult(res.data);
@@ -192,43 +188,32 @@ export default function PublicOrder() {
     }
   };
 
-  const inputStyle = (required, value) => ({
-    width: '100%', background: '#1a1a1a',
-    border: `1px solid ${required && !value ? '#555' : '#2a2a2a'}`,
-    borderRadius: 8, color: 'white', padding: '11px 14px',
-    fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box'
-  });
-
-  const labelStyle = (required) => ({
-    display: 'block', fontSize: '0.72rem', fontWeight: 700,
-    color: required ? '#aaa' : '#666',
-    marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em'
-  });
+  const inputStyle = { width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'white', padding: '11px 14px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' };
+  const labelStyle = { display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#888', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' };
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 32, height: 32, border: '3px solid #E8B84B', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 36, height: 36, border: '3px solid #E8B84B', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   );
 
-  // ── Éxito ──────────────────────────────────────────────────────────
+  // ── ÉXITO ───────────────────────────────────────────────────────────
   if (step === 'success' && orderResult) {
     return (
       <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <div style={{ fontSize: '4rem', marginBottom: 16 }}>🎉</div>
+          <img src={logoJanz} alt="Janz" style={{ height: 70, objectFit: 'contain', marginBottom: 24 }} />
+          <div style={{ fontSize: '3.5rem', marginBottom: 12 }}>🎉</div>
           <div style={{ fontFamily: 'Bebas Neue', fontSize: '2.5rem', color: '#E8B84B', marginBottom: 8 }}>¡Pedido Recibido!</div>
           <div style={{ color: '#aaa', marginBottom: 16 }}>Tu número de pedido es</div>
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: '3rem', color: 'white', background: '#1a1a1a', borderRadius: 12, padding: '16px 32px', marginBottom: 16 }}>{orderResult.orderNumber}</div>
+          <div style={{ fontFamily: 'Bebas Neue', fontSize: '3rem', color: 'white', background: '#1a1a1a', borderRadius: 12, padding: '16px 32px', marginBottom: 16, border: '1px solid #333' }}>{orderResult.orderNumber}</div>
           {orderResult.discountApplied && (
-            <div style={{ color: '#22c55e', fontWeight: 600, marginBottom: 12 }}>
-              🎟️ Descuento aplicado: {fmt(orderResult.discountApplied.amount)}
-            </div>
+            <div style={{ color: '#22c55e', fontWeight: 600, marginBottom: 12 }}>🎟️ Descuento aplicado: {fmt(orderResult.discountApplied.amount)}</div>
           )}
-          <div style={{ fontSize: '1.2rem', color: '#E8B84B', fontWeight: 700, marginBottom: 24 }}>Total: {fmt(orderResult.total)}</div>
-          <div style={{ color: '#666', fontSize: '0.85rem' }}>Te avisamos por WhatsApp cuando esté listo 📱</div>
+          <div style={{ fontSize: '1.3rem', color: '#E8B84B', fontWeight: 700, marginBottom: 24 }}>Total: {fmt(orderResult.total)}</div>
+          <div style={{ color: '#555', fontSize: '0.85rem', marginBottom: 32 }}>Te avisamos por WhatsApp cuando esté listo 📱</div>
           <button onClick={() => { setStep('menu'); setCart([]); setOrderResult(null); setClient({ name: '', whatsapp: '', address: '', floor: '', neighborhood: '', references: '', notes: '' }); setPaymentMethod(''); setCouponCode(''); setCouponStatus(null); }}
-            style={{ marginTop: 32, background: '#E8B84B', color: '#000', border: 'none', padding: '12px 32px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.95rem' }}>
+            style={{ background: '#E8B84B', color: '#000', border: 'none', padding: '12px 32px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.95rem' }}>
             Hacer otro pedido
           </button>
         </div>
@@ -239,272 +224,267 @@ export default function PublicOrder() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', color: 'white', fontFamily: 'system-ui, sans-serif' }}>
 
-      {/* ── HEADER / BRANDING ───────────────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', borderBottom: '1px solid #1a1a1a', padding: '32px 24px 28px' }}>
-        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
-          <img src={logoJanz} alt="Janz Burgers" style={{ height: 90, objectFit: 'contain', marginBottom: 12 }} />
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: '1rem', color: '#E8B84B', letterSpacing: '0.25em', marginBottom: 16 }}>
-            PIDE, MUERDE, REPITE.
+      {/* ── HERO ─────────────────────────────────────────────────────── */}
+      <div style={{ position: 'relative', width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Imagen de fondo */}
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundImage: `url(${heroBurger})`,
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          zIndex: 0
+        }} />
+        {/* Overlay oscuro */}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.92) 100%)', zIndex: 1 }} />
+
+        {/* Contenido */}
+        <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+
+          {/* Header branding */}
+          <div style={{ textAlign: 'center', padding: '48px 24px 32px' }}>
+            <img src={logoJanz} alt="Janz Burgers" style={{ height: 80, objectFit: 'contain', marginBottom: 20 }} />
+            <div style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(2.8rem, 10vw, 5rem)', color: 'white', lineHeight: 1, letterSpacing: '-0.01em', marginBottom: 16 }}>
+              PEDÍ, MORDÉ, REPETÍ.
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.85rem', maxWidth: 400, margin: '0 auto 20px', lineHeight: 1.7, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Nacimos con una sola obsesión: la hamburguesa perfecta. Cada medallón se forma a mano, cada pan sale del horno propio. No somos una franquicia. Somos Janz.
+            </p>
+            <a href="https://www.instagram.com/janz.burgers" target="_blank" rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#E8B84B', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 600, border: '1px solid rgba(232,184,75,0.4)', borderRadius: 20, padding: '6px 16px' }}>
+              <Instagram size={14} /> @janz.burgers
+            </a>
           </div>
-          <p style={{ color: '#888', fontSize: '0.88rem', lineHeight: 1.7, maxWidth: 440, margin: '0 auto 20px' }}>
-            Nacimos con una sola obsesión: la hamburguesa perfecta. Cada medallón se forma a mano, cada pan sale del horno propio y cada combinación está pensada para que no puedas parar en una.
-            No somos una franquicia. Somos Janz.
-          </p>
-          <a href="https://www.instagram.com/janz.burgers" target="_blank" rel="noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#E8B84B', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600, border: '1px solid #333', borderRadius: 20, padding: '6px 16px' }}>
-            <Instagram size={15} /> @janz.burgers
-          </a>
+
+          {/* Modal adicionales */}
+          {additionalsModal && (
+            <AdditionalsModal
+              product={additionalsModal}
+              availableAdditionals={availableAdditionals}
+              onConfirm={handleAdditionalsConfirm}
+              onClose={() => setAdditionalsModal(null)}
+            />
+          )}
+
+          {step === 'form' ? (
+            // ── FORMULARIO ────────────────────────────────────────────
+            <div style={{ flex: 1, maxWidth: 520, width: '100%', margin: '0 auto', padding: '0 20px 100px' }}>
+              <div style={{ background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(12px)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 24 }}>
+                <button onClick={() => setStep('menu')} style={{ background: 'none', border: 'none', color: '#E8B84B', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', marginBottom: 20, padding: 0 }}>
+                  ← Volver al menú
+                </button>
+                <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.8rem', color: 'white', marginBottom: 20 }}>Tus datos</div>
+
+                {/* Tipo entrega */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={labelStyle}>Tipo de entrega *</div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {[{ v: 'delivery', l: '🛵 Delivery' }, { v: 'takeaway', l: '🥡 Take Away' }].map(({ v, l }) => (
+                      <button key={v} onClick={() => setDeliveryType(v)}
+                        style={{ flex: 1, padding: '11px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', border: 'none', fontSize: '0.9rem', background: deliveryType === v ? '#E8B84B' : 'rgba(255,255,255,0.07)', color: deliveryType === v ? '#000' : '#888' }}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={labelStyle}>Nombre y apellido *</label>
+                  <input value={client.name} onChange={e => setClient(c => ({ ...c, name: e.target.value }))} placeholder="Tu nombre completo" style={inputStyle} />
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={labelStyle}>WhatsApp *</label>
+                  <input value={client.whatsapp} onChange={e => setClient(c => ({ ...c, whatsapp: e.target.value }))} placeholder="Ej: 1123456789" type="tel" style={inputStyle} />
+                </div>
+
+                {deliveryType === 'delivery' && (
+                  <>
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={labelStyle}>Dirección *</label>
+                      <input value={client.address} onChange={e => setClient(c => ({ ...c, address: e.target.value }))} placeholder="Calle y número" style={inputStyle} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                      <div>
+                        <label style={labelStyle}>Piso / Depto</label>
+                        <input value={client.floor} onChange={e => setClient(c => ({ ...c, floor: e.target.value }))} placeholder="Ej: 3° B" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Barrio</label>
+                        <input value={client.neighborhood} onChange={e => setClient(c => ({ ...c, neighborhood: e.target.value }))} placeholder="Tu barrio" style={inputStyle} />
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={labelStyle}>Referencias</label>
+                      <input value={client.references} onChange={e => setClient(c => ({ ...c, references: e.target.value }))} placeholder="Ej: portón verde, timbre 2B..." style={inputStyle} />
+                    </div>
+                  </>
+                )}
+
+                {/* Método de pago */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={labelStyle}>Método de pago *</div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {[{ value: 'efectivo', label: '💵 Efectivo' }, { value: 'transferencia', label: '🏦 Transferencia' }, { value: 'mercadopago', label: '💳 MercadoPago' }].map(m => (
+                      <button key={m.value} onClick={() => setPaymentMethod(m.value)}
+                        style={{ flex: 1, minWidth: 110, padding: '11px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', border: 'none', background: paymentMethod === m.value ? '#E8B84B' : 'rgba(255,255,255,0.07)', color: paymentMethod === m.value ? '#000' : '#888' }}>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 18 }}>
+                  <label style={labelStyle}>Notas del pedido</label>
+                  <textarea value={client.notes} onChange={e => setClient(c => ({ ...c, notes: e.target.value }))} placeholder="Aclaraciones, alergias..." rows={2} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
+                </div>
+
+                {/* Cupón */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={labelStyle}>🎟️ Cupón de descuento</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={couponCode} onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }} placeholder="Ej: LAURA10"
+                      style={{ ...inputStyle, border: `1px solid ${couponStatus?.valid ? '#22c55e' : couponStatus?.valid === false ? '#ef4444' : 'rgba(255,255,255,0.1)'}` }} />
+                    <button onClick={validateCoupon} disabled={validatingCoupon || !couponCode.trim()}
+                      style={{ background: 'rgba(232,184,75,0.1)', color: '#E8B84B', border: '1px solid #E8B84B', padding: '10px 16px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                      {validatingCoupon ? '...' : 'Aplicar'}
+                    </button>
+                  </div>
+                  {couponStatus && (
+                    <div style={{ marginTop: 6, fontSize: '0.8rem', color: couponStatus.valid ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                      {couponStatus.valid ? '✅' : '❌'} {couponStatus.message}
+                    </div>
+                  )}
+                </div>
+
+                {/* Resumen */}
+                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 16, marginBottom: 20, border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontWeight: 700, marginBottom: 10, color: '#E8B84B', fontFamily: 'Bebas Neue', fontSize: '1.1rem' }}>Resumen del pedido</div>
+                  {cart.map((i, idx) => (
+                    <div key={idx} style={{ marginBottom: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                        <span>{i.productName} {i.variant} ×{i.quantity}</span>
+                        <span>{fmt(i.unitPrice * i.quantity)}</span>
+                      </div>
+                      {(i.additionals || []).map((a, ai) => (
+                        <div key={ai} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#888', paddingLeft: 12, marginTop: 2 }}>
+                          <span>+ {a.name} ×{a.quantity}</span><span>+ {fmt(a.unitPrice * a.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 10, paddingTop: 10 }}>
+                    {discount > 0 && (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: 4, color: '#888' }}>
+                          <span>Subtotal</span><span>{fmt(total)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: 6, color: '#22c55e' }}>
+                          <span>🎟️ Descuento {couponStatus.discountPercent}%</span><span>- {fmt(discount)}</span>
+                        </div>
+                      </>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                      <span>TOTAL</span>
+                      <span style={{ color: '#E8B84B', fontSize: '1.1rem' }}>{fmt(totalWithDiscount)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button onClick={handleSubmit} disabled={submitting}
+                  style={{ width: '100%', background: submitting ? '#666' : '#E8B84B', color: '#000', border: 'none', padding: '15px', borderRadius: 10, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '1rem', letterSpacing: '0.03em' }}>
+                  {submitting ? 'Enviando...' : `Confirmar Pedido — ${fmt(totalWithDiscount)}`}
+                </button>
+              </div>
+            </div>
+
+          ) : (
+            // ── MENÚ ──────────────────────────────────────────────────
+            <div style={{ flex: 1, maxWidth: 560, width: '100%', margin: '0 auto', padding: '0 16px 120px' }}>
+
+              {!open && (
+                <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 10, padding: '14px 18px', marginBottom: 20, color: '#ef4444', textAlign: 'center', fontWeight: 600 }}>
+                  🔴 En este momento no estamos tomando pedidos
+                </div>
+              )}
+
+              {Object.entries(menu).map(([name, variants]) => (
+                <div key={name} style={{ marginBottom: 28 }}>
+                  <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.8rem', color: '#E8B84B', marginBottom: 10, textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+                    🍔 {name}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {variants.sort((a, b) => a.variant.localeCompare(b.variant)).map(p => {
+                      const inCart = cart.find(i => i.product === p._id);
+                      const unavailable = !p.available;
+                      return (
+                        <div key={p._id} style={{ background: 'rgba(10,10,10,0.82)', backdropFilter: 'blur(10px)', border: `1px solid ${inCart ? '#E8B84B' : unavailable ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 14, overflow: 'hidden', opacity: unavailable ? 0.5 : 1 }}>
+                          {p.image && <img src={p.image} alt={name} style={{ width: '100%', height: 170, objectFit: 'cover', display: 'block' }} />}
+                          <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 700, color: 'white' }}>
+                                {name} <span style={{ color: '#E8B84B' }}>{p.variant}</span>
+                                {unavailable && <span style={{ color: '#ef4444', fontSize: '0.72rem', marginLeft: 8, fontWeight: 600 }}>NO DISPONIBLE</span>}
+                              </div>
+                              {p.description && <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.78rem', marginTop: 3, lineHeight: 1.4 }}>{p.description}</div>}
+                              <div style={{ color: '#E8B84B', fontWeight: 700, marginTop: 5, fontSize: '1.05rem' }}>{fmt(p.salePrice)}</div>
+                              {availableAdditionals.length > 0 && !inCart && !unavailable && (
+                                <div style={{ color: '#555', fontSize: '0.72rem', marginTop: 3 }}>Podés agregar extras</div>
+                              )}
+                            </div>
+                            {!unavailable && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 12 }}>
+                                {inCart ? (
+                                  <>
+                                    <button onClick={() => removeFromCart(p._id)} style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', fontSize: '1.2rem', cursor: 'pointer' }}>−</button>
+                                    <span style={{ fontWeight: 700, minWidth: 22, textAlign: 'center', color: 'white', fontSize: '1.1rem' }}>{inCart.quantity}</span>
+                                    <button onClick={() => handleAddToCart(p)} style={{ width: 34, height: 34, borderRadius: '50%', background: '#E8B84B', border: 'none', color: '#000', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 700 }}>+</button>
+                                  </>
+                                ) : (
+                                  <button onClick={() => handleAddToCart(p)} style={{ background: '#E8B84B', color: '#000', border: 'none', padding: '9px 20px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>Agregar</button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Adicionales */}
+              {availableAdditionals.length > 0 && (
+                <div style={{ marginBottom: 40 }}>
+                  <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.8rem', color: '#E8B84B', marginBottom: 10, textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>➕ ADICIONALES</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {availableAdditionals.map(add => (
+                      <div key={add._id} style={{ background: 'rgba(10,10,10,0.82)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span style={{ color: 'white', fontWeight: 600 }}>{add.emoji} {add.name}</span>
+                          {add.description && <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', marginLeft: 8 }}>{add.description}</span>}
+                        </div>
+                        <span style={{ color: '#E8B84B', fontWeight: 700 }}>{fmt(add.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Footer */}
+              <div style={{ textAlign: 'center', padding: '24px 0 8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <img src={logoJanz} alt="Janz" style={{ height: 32, opacity: 0.35, display: 'block', margin: '0 auto 8px' }} />
+                <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem' }}>Janz Burgers · Pedí, Mordé, Repetí.</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {additionalsModal && (
-        <AdditionalsModal
-          product={additionalsModal}
-          availableAdditionals={availableAdditionals}
-          onConfirm={handleAdditionalsConfirm}
-          onClose={() => setAdditionalsModal(null)}
-        />
-      )}
-
-      {step === 'form' ? (
-        // ── FORMULARIO ──────────────────────────────────────────────────
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: '28px 20px 60px' }}>
-          <button onClick={() => setStep('menu')} style={{ background: 'none', border: 'none', color: '#E8B84B', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', marginBottom: 20, padding: 0 }}>
-            ← Volver al menú
+      {/* Botón flotante carrito */}
+      {cart.length > 0 && step === 'menu' && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
+          <button onClick={() => setStep('form')} style={{ background: '#E8B84B', color: '#000', border: 'none', padding: '14px 32px', borderRadius: 100, fontWeight: 700, cursor: 'pointer', fontSize: '1rem', boxShadow: '0 4px 28px rgba(232,184,75,0.5)', whiteSpace: 'nowrap' }}>
+            🛒 Ver pedido ({cart.reduce((s, i) => s + i.quantity, 0)}) — {fmt(total)}
           </button>
-
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.8rem', color: 'white', marginBottom: 20 }}>Tus datos</div>
-
-          {/* Tipo de entrega */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={labelStyle(true)}>Tipo de entrega *</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {[{ v: 'delivery', l: '🛵 Delivery' }, { v: 'takeaway', l: '🥡 Take Away' }].map(({ v, l }) => (
-                <button key={v} onClick={() => setDeliveryType(v)}
-                  style={{ flex: 1, padding: '11px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', border: 'none', fontSize: '0.9rem',
-                    background: deliveryType === v ? '#E8B84B' : '#1a1a1a',
-                    color: deliveryType === v ? '#000' : '#666' }}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Nombre */}
-          <div style={{ marginBottom: 14 }}>
-            <label style={labelStyle(true)}>Nombre y apellido *</label>
-            <input value={client.name} onChange={e => setClient(c => ({ ...c, name: e.target.value }))}
-              placeholder="Tu nombre completo" style={inputStyle(true, client.name)} />
-          </div>
-
-          {/* WhatsApp */}
-          <div style={{ marginBottom: 14 }}>
-            <label style={labelStyle(true)}>WhatsApp *</label>
-            <input value={client.whatsapp} onChange={e => setClient(c => ({ ...c, whatsapp: e.target.value }))}
-              placeholder="Ej: 1123456789" type="tel" style={inputStyle(true, client.whatsapp)} />
-          </div>
-
-          {/* Dirección (solo delivery) */}
-          {deliveryType === 'delivery' && (
-            <>
-              <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle(true)}>Dirección *</label>
-                <input value={client.address} onChange={e => setClient(c => ({ ...c, address: e.target.value }))}
-                  placeholder="Calle y número" style={inputStyle(true, client.address)} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                <div>
-                  <label style={labelStyle(false)}>Piso / Depto</label>
-                  <input value={client.floor} onChange={e => setClient(c => ({ ...c, floor: e.target.value }))}
-                    placeholder="Ej: 3° B" style={inputStyle(false, client.floor)} />
-                </div>
-                <div>
-                  <label style={labelStyle(false)}>Barrio</label>
-                  <input value={client.neighborhood} onChange={e => setClient(c => ({ ...c, neighborhood: e.target.value }))}
-                    placeholder="Tu barrio" style={inputStyle(false, client.neighborhood)} />
-                </div>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle(false)}>Referencias</label>
-                <input value={client.references} onChange={e => setClient(c => ({ ...c, references: e.target.value }))}
-                  placeholder="Ej: portón verde, timbre 2B..." style={inputStyle(false, client.references)} />
-              </div>
-            </>
-          )}
-
-          {/* Método de pago */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={labelStyle(true)}>Método de pago *</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {[{ value: 'efectivo', label: '💵 Efectivo' }, { value: 'transferencia', label: '🏦 Transferencia' }, { value: 'mercadopago', label: '💳 MercadoPago' }].map(m => (
-                <button key={m.value} onClick={() => setPaymentMethod(m.value)}
-                  style={{ flex: 1, minWidth: 120, padding: '11px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem',
-                    background: paymentMethod === m.value ? '#E8B84B' : '#1a1a1a',
-                    color: paymentMethod === m.value ? '#000' : '#666',
-                    border: paymentMethod === m.value ? 'none' : '1px solid #2a2a2a' }}>
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            {!paymentMethod && <div style={{ color: '#555', fontSize: '0.75rem', marginTop: 6 }}>⚠️ Seleccioná cómo vas a pagar</div>}
-          </div>
-
-          {/* Notas */}
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle(false)}>Notas del pedido</label>
-            <textarea value={client.notes} onChange={e => setClient(c => ({ ...c, notes: e.target.value }))}
-              placeholder="Aclaraciones, alergias, preferencias..." rows={3}
-              style={{ ...inputStyle(false, client.notes), resize: 'vertical', fontFamily: 'inherit' }} />
-          </div>
-
-          {/* Cupón */}
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle(false)}>🎟️ Cupón de descuento</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input value={couponCode}
-                onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
-                placeholder="Ej: LAURA10"
-                style={{ ...inputStyle(false, couponCode), border: `1px solid ${couponStatus?.valid ? '#22c55e' : couponStatus?.valid === false ? '#ef4444' : '#2a2a2a'}` }} />
-              <button onClick={validateCoupon} disabled={validatingCoupon || !couponCode.trim()}
-                style={{ background: '#1a1a1a', color: '#E8B84B', border: '1px solid #E8B84B', padding: '10px 16px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                {validatingCoupon ? '...' : 'Aplicar'}
-              </button>
-            </div>
-            {couponStatus && (
-              <div style={{ marginTop: 6, fontSize: '0.8rem', color: couponStatus.valid ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-                {couponStatus.valid ? '✅' : '❌'} {couponStatus.message}
-              </div>
-            )}
-          </div>
-
-          {/* Resumen */}
-          <div style={{ background: '#111', borderRadius: 12, padding: 16, marginBottom: 20, border: '1px solid #1e1e1e' }}>
-            <div style={{ fontWeight: 700, marginBottom: 10, color: '#E8B84B', fontFamily: 'Bebas Neue', fontSize: '1.1rem' }}>Resumen del pedido</div>
-            {cart.map((i, idx) => (
-              <div key={idx} style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                  <span>{i.productName} {i.variant} ×{i.quantity}</span>
-                  <span>{fmt(i.unitPrice * i.quantity)}</span>
-                </div>
-                {(i.additionals || []).map((a, ai) => (
-                  <div key={ai} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#888', paddingLeft: 12, marginTop: 2 }}>
-                    <span>+ {a.name} ×{a.quantity}</span>
-                    <span>+ {fmt(a.unitPrice * a.quantity)}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-            <div style={{ borderTop: '1px solid #222', marginTop: 10, paddingTop: 10 }}>
-              {discount > 0 && (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: 4, color: '#888' }}>
-                    <span>Subtotal</span><span>{fmt(total)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: 6, color: '#22c55e' }}>
-                    <span>🎟️ Descuento {couponStatus.discountPercent}%</span>
-                    <span>- {fmt(discount)}</span>
-                  </div>
-                </>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                <span>TOTAL</span>
-                <span style={{ color: '#E8B84B', fontSize: '1.1rem' }}>{fmt(totalWithDiscount)}</span>
-              </div>
-            </div>
-          </div>
-
-          <button onClick={handleSubmit} disabled={submitting}
-            style={{ width: '100%', background: submitting ? '#666' : '#E8B84B', color: '#000', border: 'none', padding: '15px', borderRadius: 10, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '1rem', letterSpacing: '0.03em' }}>
-            {submitting ? 'Enviando...' : `Confirmar Pedido — ${fmt(totalWithDiscount)}`}
-          </button>
-        </div>
-
-      ) : (
-        // ── MENÚ ────────────────────────────────────────────────────────
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: '28px 20px 100px' }}>
-
-          {!open && (
-            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '14px 18px', marginBottom: 20, color: '#ef4444', textAlign: 'center', fontWeight: 600 }}>
-              🔴 En este momento no estamos tomando pedidos
-            </div>
-          )}
-
-          {Object.entries(menu).map(([name, variants]) => (
-            <div key={name} style={{ marginBottom: 28 }}>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.8rem', color: '#E8B84B', marginBottom: 12 }}>🍔 {name}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {variants.sort((a, b) => a.variant.localeCompare(b.variant)).map(p => {
-                  const inCart = cart.find(i => i.product === p._id);
-                  const unavailable = !p.available;
-                  return (
-                    <div key={p._id} style={{ background: '#1a1a1a', border: `1px solid ${inCart ? '#E8B84B' : unavailable ? '#2a2a2a' : '#222'}`, borderRadius: 12, overflow: 'hidden', opacity: unavailable ? 0.5 : 1 }}>
-                      {p.image && <img src={p.image} alt={name} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />}
-                      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, color: 'white' }}>
-                          {name} <span style={{ color: '#E8B84B' }}>{p.variant}</span>
-                          {unavailable && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginLeft: 8, fontWeight: 600 }}>NO DISPONIBLE</span>}
-                        </div>
-                        {p.description && <div style={{ color: '#666', fontSize: '0.78rem', marginTop: 3, lineHeight: 1.4 }}>{p.description}</div>}
-                        <div style={{ color: '#E8B84B', fontWeight: 700, marginTop: 4 }}>{fmt(p.salePrice)}</div>
-                        {availableAdditionals.length > 0 && !inCart && !unavailable && (
-                          <div style={{ color: '#555', fontSize: '0.72rem', marginTop: 3 }}>Podés agregar extras</div>
-                        )}
-                      </div>
-                      {!unavailable && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          {inCart ? (
-                            <>
-                              <button onClick={() => removeFromCart(p._id)} style={{ width: 32, height: 32, borderRadius: '50%', background: '#333', border: 'none', color: 'white', fontSize: '1.2rem', cursor: 'pointer' }}>−</button>
-                              <span style={{ fontWeight: 700, minWidth: 20, textAlign: 'center', color: 'white' }}>{inCart.quantity}</span>
-                              <button onClick={() => handleAddToCart(p)} style={{ width: 32, height: 32, borderRadius: '50%', background: '#E8B84B', border: 'none', color: '#000', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 700 }}>+</button>
-                            </>
-                          ) : (
-                            <button onClick={() => handleAddToCart(p)} style={{ background: '#E8B84B', color: '#000', border: 'none', padding: '8px 18px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-
-          {/* Adicionales disponibles */}
-          {availableAdditionals.length > 0 && (
-            <div style={{ marginBottom: 40 }}>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.8rem', color: '#E8B84B', marginBottom: 4 }}>➕ ADICIONALES</div>
-              <div style={{ color: '#555', fontSize: '0.8rem', marginBottom: 12 }}>Se agregan al momento de elegir tu burger</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {availableAdditionals.map(add => (
-                  <div key={add._id} style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: 10, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ color: 'white', fontWeight: 600 }}>{add.emoji} {add.name}</span>
-                      {add.description && <span style={{ color: '#555', fontSize: '0.78rem', marginLeft: 8 }}>{add.description}</span>}
-                    </div>
-                    <span style={{ color: '#E8B84B', fontWeight: 700 }}>{fmt(add.price)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Footer branding */}
-          <div style={{ textAlign: 'center', padding: '24px 0', borderTop: '1px solid #1a1a1a', color: '#333', fontSize: '0.8rem' }}>
-            <img src={logoJanz} alt="Janz Burgers" style={{ height: 36, objectFit: 'contain', opacity: 0.4, marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
-            Janz Burgers · Pide, muerde, repite.
-          </div>
-
-          {/* Botón flotante carrito */}
-          {cart.length > 0 && (
-            <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
-              <button onClick={() => setStep('form')} style={{ background: '#E8B84B', color: '#000', border: 'none', padding: '14px 32px', borderRadius: 100, fontWeight: 700, cursor: 'pointer', fontSize: '1rem', boxShadow: '0 4px 24px rgba(232,184,75,0.45)', whiteSpace: 'nowrap' }}>
-                🛒 Ver pedido ({cart.reduce((s, i) => s + i.quantity, 0)} items) — {fmt(total)}
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>

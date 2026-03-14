@@ -68,7 +68,7 @@ if (fullPhone.startsWith('54') && !fullPhone.startsWith('549')) {
 console.log('Intentando enviar a chatId:', chatId);
 const itemsList = items.map(i => `  • ${i.productName} ${i.variant} ×${i.quantity} — $${Number(i.unitPrice * i.quantity).toLocaleString('es-AR')}`).join('\n');
 
-const message = `¡Hola ${clientName}! 👋\n\nTu pedido *${orderNumber}* ha sido confirmado y ya está en marcha. 🍔\n\n*Detalle:*\n${itemsList}\n\n💰 *Total: $${Number(total).toLocaleString('es-AR')}*\n\n_Gracias por elegirnos — Janz Burgers_ 🔥`;
+const message = `¡Hola ${clientName}! 👋\n\nTu pedido *${orderNumber}* ha sido confirmado por nuestra cocina y ya está en marcha. 🍔\n\n*Detalle:*\n${itemsList}\n\n💰 *Total: $${Number(total).toLocaleString('es-AR')}*\n\n_Gracias por elegirnos — Janz Burgers_ 🔥`;
 
     const isRegistered = await client.isRegisteredUser(chatId);
     if (!isRegistered) {
@@ -106,7 +106,7 @@ async function sendOrderReady(phoneNumber, orderNumber, clientName, deliveryType
 
     const message = deliveryType === 'takeaway'
       ? `¡Hola ${clientName}! 🥡\n\nTu pedido *${orderNumber}* está *listo para retirar*. ✅\n\nPodés pasar a buscarlo cuando quieras. Te esperamos! 😊\n\n_Gracias por elegirnos — Janz Burgers_ 🔥`
-      : `¡Hola ${clientName}! 🛵\n\nTu pedido *${orderNumber}* está *listo y en camino*. ✅\n\nEn breve sale el delivery hacia tu domicilio. ¡Gracias por la confianza!\n\n_Janz Burgers_ 🍔🔥`;
+      : `¡Hola ${clientName}! 🛵\n\nTu pedido *${orderNumber}* está *listo y en camino*. ✅\n\nEn instantes llega a tu puerta. ¡Gracias por la espera!\n\n_Janz Burgers_ 🍔🔥`;
 
     const isRegistered = await client.isRegisteredUser(chatId);
     if (!isRegistered) {

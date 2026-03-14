@@ -38,6 +38,26 @@ router.get('/recipes', auth, async (req, res) => {
   }
 });
 
+// PUT update recipe
+router.put('/recipes/:id', auth, adminOnly, async (req, res) => {
+  try {
+    let totalCost = 0;
+    for (const ri of req.body.ingredients) {
+      const ing = await Ingredient.findById(ri.ingredient);
+      if (ing) totalCost += (ing.costPerUnit || 0) * ri.quantity;
+    }
+    const recipe = await Recipe.findByIdAndUpdate(
+      req.params.id,
+      { ingredients: req.body.ingredients, totalCost: Math.round(totalCost) },
+      { new: true }
+    );
+    if (!recipe) return res.status(404).json({ message: 'Receta no encontrada' });
+    res.json(recipe);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 // POST create recipe
 router.post('/recipes', auth, adminOnly, async (req, res) => {
   try {
